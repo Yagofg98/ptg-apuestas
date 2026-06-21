@@ -38,6 +38,9 @@ const demoApi = {
   async signInWithEmail(_email: string) {
     /* en demo no hay login real */
   },
+  async verifyEmailOtp(_email: string, _token: string) {
+    /* en demo no hay login real */
+  },
   async signOut() {},
   async listMatches(): Promise<Match[]> {
     return demo.getMatches();
@@ -125,6 +128,11 @@ const realApi = {
   },
   async signInWithEmail(email: string) {
     const { error } = await supabase!.auth.signInWithOtp({ email });
+    if (error) throw error;
+  },
+  async verifyEmailOtp(email: string, token: string) {
+    // Login por código (sin salir al navegador). El código va en el mismo email.
+    const { error } = await supabase!.auth.verifyOtp({ email, token: token.trim(), type: "email" });
     if (error) throw error;
   },
   async signOut() {
