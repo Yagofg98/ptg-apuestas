@@ -44,6 +44,10 @@ function mkPlayer(
 // (Mejora futura: ponderar lo actual según nº de partidos jugados — shrinkage.)
 const CFG = { ...DEFAULT_CONFIG, leagueSize: 40, alpha: 0.35, decisiveness: 0.28 };
 
+// Topes (espejo de odds_settings en el backend real).
+const MAX_STAKE_PER_MATCH = 2000;
+const MONTHLY_DEPOSIT_CAP = 10000;
+
 // Roster REAL del grupo "Madrid Mas Azul" (capturado de PTG, ordenado por ranking
 // histórico). mkPlayer(nombre, ranking_actual, win_actual, ranking_histórico, win_histórico).
 const roster: Player[] = [
@@ -148,6 +152,8 @@ interface DemoState {
   // bote de combinadas por partido (matchId → tokens). Las combinadas (mismo
   // partido) compiten en su propio bote, separado de los botes por mercado.
   comboPools: Record<string, number>;
+  // tokens ingresados este mes (para el tope mensual de depósito).
+  depositedThisMonth: number;
 }
 
 const state: DemoState = {
@@ -168,6 +174,7 @@ const state: DemoState = {
     { id: uid(), userName: "Pablo Ausín García", amountEur: 20, tokens: 2000, createdAt: new Date().toISOString() },
   ],
   comboPools: {},
+  depositedThisMonth: 0,
 };
 
 // ---- Suscripción simple para que la UI reaccione a cambios (cuotas/saldo) ----
@@ -218,6 +225,21 @@ export const demo = {
       if (matchIds.size !== 1) throw new Error("La combinada debe ser del mismo partido");
     }
 
+    // Tope por jugador y partido: lo ya apostado en ese partido + lo nuevo.
+    const matchId = findOutcome(legs[0].outcomeId)?.match.id;
+    const stakedOnMatch = state.bets
+      .filter(
+        (b) =>
+          b.status !== "void" &&
+          b.legs.some((l) => l.outcomeId && findOutcome(l.outcomeId)?.match.id === matchId),
+      )
+      .reduce((s, b) => s + b.stake, 0);
+    if (stakedOnMatch + stake > MAX_STAKE_PER_MATCH) {
+      throw new Error(
+        `Tope de apuesta por partido superado (máx ${MAX_STAKE_PER_MATCH} tk; ya tienes ${stakedOnMatch})`,
+      );
+    }
+
     // combinada = cuota ESTIMADA (producto); simple = cuota estimada de su mercado
     const combined = Number(legs.reduce((acc, l) => acc * l.odds, 1).toFixed(2));
     const payout = Number((stake * combined).toFixed(2));
@@ -252,15 +274,20 @@ export const demo = {
   },
 
   requestDeposit(amountEur: number, tokensPerEur: number) {
-    // Como en producción: queda PENDIENTE hasta que el tesorero lo confirma.
-    state.deposits.unshift({
-      id: uid(),
-      userName: state.user.name,
-      amountEur,
-      tokens: amountEur * tokensPerEur,
-      createdAt: new Date().toISOString(),
-    });
+    // Auto-acreditado al instante (sin tesorero), con tope mensual.
+    const tokens = amountEur * tokensPerEur;
+    if (state.depositedThisMonth + tokens > MONTHLY_DEPOSIT_CAP) {
+      const left = Math.max(MONTHLY_DEPOSIT_CAP - state.depositedThisMonth, 0);
+      throw new Error(`Tope mensual de ingreso superado: te quedan ${left} tk este mes`);
+    }
+    state.depositedThisMonth += tokens;
+    state.balance += tokens;
+    state.txs.unshift({ id: uid(), type: "deposit", amount: tokens, note: "Ingreso (auto)", createdAt: new Date().toISOString() });
     emit();
+  },
+
+  depositRoom() {
+    return Math.max(MONTHLY_DEPOSIT_CAP - state.depositedThisMonth, 0);
   },
 
   // ---- Admin ----

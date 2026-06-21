@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useLive } from "../hooks/useLive";
-import { api, TOKENS_PER_EUR, DEMO_MODE } from "../lib/api";
+import { api, TOKENS_PER_EUR } from "../lib/api";
 import { fmtOdds, fmtTokens } from "../lib/format";
 
 export function Wallet({ onChange }: { onChange: () => void }) {
   const { data: balance } = useLive(() => api.getBalance(), []);
   const { data: bets } = useLive(() => api.getBets(), []);
   const { data: txs, reload: reloadTxs } = useLive(() => api.getTransactions(), []);
+  const { data: room, reload: reloadRoom } = useLive(() => api.getDepositRoom(), []);
   const [tab, setTab] = useState<"bets" | "movs">("bets");
   const [eur, setEur] = useState(20);
   const [busy, setBusy] = useState(false);
@@ -14,11 +15,13 @@ export function Wallet({ onChange }: { onChange: () => void }) {
 
   async function deposit() {
     setBusy(true);
+    setMsg(null);
     try {
       await api.requestDeposit(eur);
-      setMsg(DEMO_MODE ? "Depósito demo acreditado." : "Solicitud enviada. El tesorero la confirmará al recibir el Bizum.");
+      setMsg("✓ Saldo acreditado al instante.");
       onChange();
       reloadTxs();
+      reloadRoom();
     } catch (e: any) {
       setMsg(e.message ?? "Error");
     } finally {
@@ -35,7 +38,12 @@ export function Wallet({ onChange }: { onChange: () => void }) {
       </div>
 
       <div className="card p-4">
-        <h3 className="font-semibold mb-2">Ingresar saldo</h3>
+        <div className="flex items-baseline justify-between mb-2">
+          <h3 className="font-semibold">Ingresar saldo</h3>
+          {room != null && (
+            <span className="text-[11px] text-gray-400">Cupo restante este mes: {fmtTokens(room)} tk</span>
+          )}
+        </div>
         <div className="flex gap-2 items-center">
           <div className="flex-1 flex items-center bg-ink-900 border border-ink-600 rounded-xl px-3">
             <input
@@ -52,11 +60,9 @@ export function Wallet({ onChange }: { onChange: () => void }) {
           </button>
         </div>
         {msg && <p className="text-xs text-padel-400 mt-2">{msg}</p>}
-        {!DEMO_MODE && (
-          <p className="text-[11px] text-gray-500 mt-2">
-            Paga por Bizum al tesorero y se te acreditarán los tokens al confirmar.
-          </p>
-        )}
+        <p className="text-[11px] text-gray-500 mt-2">
+          Se acredita al instante. Las cuentas se ajustan en la liquidación cada 15 días entre jugadores.
+        </p>
       </div>
 
       <div className="flex gap-2">

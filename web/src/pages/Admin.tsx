@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLive } from "../hooks/useLive";
 import { api } from "../lib/api";
 import { Match, SessionUser } from "../lib/types";
-import { fmtTokens, teamName, whenLabel } from "../lib/format";
+import { teamName, whenLabel } from "../lib/format";
 import { NewMatchForm } from "../components/NewMatchForm";
 
 export function Admin({ user, onChange }: { user: SessionUser | null; onChange: () => void }) {
@@ -13,7 +13,6 @@ export function Admin({ user, onChange }: { user: SessionUser | null; onChange: 
     <div className="py-3 space-y-5">
       <h1 className="text-xl font-extrabold px-1">Panel admin</h1>
       <InvitePlayer />
-      <Deposits onChange={onChange} />
       <Section title="Crear partido">
         <NewMatchForm origin="admin" onCreated={onChange} />
       </Section>
@@ -90,29 +89,6 @@ function InvitePlayer() {
           <p className="text-[11px] text-gray-500">Válido 1 hora, un solo uso. El jugador lo abre y entra.</p>
         </div>
       )}
-    </Section>
-  );
-}
-
-function Deposits({ onChange }: { onChange: () => void }) {
-  const { data: deps, reload } = useLive(() => api.listPendingDeposits(), []);
-  async function confirm(id: string) {
-    await api.confirmDeposit(id);
-    reload();
-    onChange();
-  }
-  return (
-    <Section title="Depósitos pendientes">
-      {(deps ?? []).length === 0 && <p className="text-sm text-gray-500">No hay depósitos pendientes.</p>}
-      {(deps ?? []).map((d) => (
-        <div key={d.id} className="flex items-center justify-between bg-ink-700/40 rounded-xl px-3 py-2">
-          <div>
-            <div className="font-semibold text-sm">{d.userName}</div>
-            <div className="text-xs text-gray-400">{d.amountEur}€ → {fmtTokens(d.tokens)} tk</div>
-          </div>
-          <button onClick={() => confirm(d.id)} className="btn-primary py-2 px-3 text-sm">Confirmar</button>
-        </div>
-      ))}
     </Section>
   );
 }

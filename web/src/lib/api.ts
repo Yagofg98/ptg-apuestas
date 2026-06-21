@@ -59,6 +59,9 @@ const demoApi = {
   async requestDeposit(amountEur: number): Promise<void> {
     demo.requestDeposit(amountEur, TOKENS_PER_EUR);
   },
+  async getDepositRoom(): Promise<number> {
+    return demo.depositRoom();
+  },
   subscribe(fn: () => void): () => void {
     return demoSubscribe(fn);
   },
@@ -193,15 +196,14 @@ const realApi = {
     return data as string;
   },
   async requestDeposit(amountEur: number): Promise<void> {
-    const { data: u } = await supabase!.auth.getUser();
-    const { error } = await supabase!.from("deposits").insert({
-      user_id: u.user!.id,
-      amount_eur: amountEur,
-      tokens: amountEur * TOKENS_PER_EUR,
-      method: "bizum",
-      status: "requested",
-    });
+    // Auto-acreditado (sin tesorero), con tope mensual validado en el servidor.
+    const { error } = await supabase!.rpc("deposit_tokens", { p_amount_eur: amountEur });
     if (error) throw error;
+  },
+  async getDepositRoom(): Promise<number> {
+    const { data, error } = await supabase!.rpc("deposit_room");
+    if (error) throw error;
+    return Number(data ?? 0);
   },
   subscribe(fn: () => void): () => void {
     // Nombre de canal ÚNICO por suscripción: varios componentes se suscriben a la
