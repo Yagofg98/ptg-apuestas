@@ -1,0 +1,45 @@
+# Auto-deploy de la PWA a Vercel en cada push a main que toque web/.
+# Requiere el secret VERCEL_TOKEN (Vercel → Account Settings → Tokens).
+# Los IDs de proyecto/org NO son secretos (identifican el proyecto, no dan acceso).
+name: Deploy web (Vercel)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - ".github/workflows/deploy-web.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-web
+  cancel-in-progress: true
+
+env:
+  VERCEL_ORG_ID: team_lmYTDBCFTiZMzy5a7je6GBM4
+  VERCEL_PROJECT_ID: prj_aUIG60Cx4LcoQxSvzs2u6NBtmeFl
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --global vercel@latest
+      - name: Pull project settings + env (production)
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - name: Build (con las env vars del proyecto en Vercel)
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy prebuilt a producción
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
