@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { api, DEMO_MODE } from "../lib/api";
 import { SessionUser } from "../lib/types";
 import { InstallButton } from "../components/InstallButton";
@@ -12,6 +13,8 @@ export function Profile({ user }: { user: SessionUser | null }) {
           <div className="text-xs text-gray-400 capitalize">{user?.role ?? "player"}</div>
         </div>
       </div>
+
+      {!DEMO_MODE && <ChangePassword />}
 
       <div className="card p-4 space-y-2">
         <h3 className="font-semibold text-sm">Instalar como app</h3>
@@ -34,6 +37,46 @@ export function Profile({ user }: { user: SessionUser | null }) {
           Cerrar sesión
         </button>
       )}
+    </div>
+  );
+}
+
+function ChangePassword() {
+  const [pw, setPw] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  async function save() {
+    setBusy(true);
+    setMsg(null);
+    try {
+      await api.changePassword(pw);
+      setMsg("✓ Contraseña cambiada.");
+      setPw("");
+    } catch (e: any) {
+      setMsg(e.message ?? "Error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card p-4 space-y-2">
+      <h3 className="font-semibold text-sm">Cambiar contraseña</h3>
+      <div className="flex gap-2">
+        <input
+          type="password"
+          autoComplete="new-password"
+          placeholder="nueva contraseña (mín. 6)"
+          value={pw}
+          onChange={(e) => setPw(e.target.value)}
+          className="flex-1 bg-ink-900 border border-ink-600 rounded-xl px-3 py-2.5"
+        />
+        <button disabled={busy || pw.length < 6} onClick={save} className="btn-primary py-2 px-4">
+          {busy ? "…" : "Guardar"}
+        </button>
+      </div>
+      {msg && <p className="text-xs text-padel-400">{msg}</p>}
     </div>
   );
 }

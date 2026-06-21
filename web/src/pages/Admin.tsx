@@ -13,6 +13,7 @@ export function Admin({ user, onChange }: { user: SessionUser | null; onChange: 
     <div className="py-3 space-y-5">
       <h1 className="text-xl font-extrabold px-1">Panel admin</h1>
       <InvitePlayer />
+      <ResetPassword />
       <Section title="Crear partido">
         <NewMatchForm origin="admin" onCreated={onChange} />
       </Section>
@@ -89,6 +90,55 @@ function InvitePlayer() {
           <p className="text-[11px] text-gray-500">Válido 1 hora, un solo uso. El jugador lo abre y entra.</p>
         </div>
       )}
+    </Section>
+  );
+}
+
+function ResetPassword() {
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  async function reset() {
+    setBusy(true);
+    setMsg(null);
+    try {
+      await api.adminResetPassword(email.trim(), pw);
+      setMsg(`✓ Contraseña de ${email.trim()} cambiada. Pásasela; podrá cambiarla en Perfil.`);
+      setPw("");
+    } catch (e: any) {
+      setMsg(e.message ?? "Error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Section title="Resetear contraseña de un jugador">
+      <p className="text-xs text-gray-400 -mt-1">
+        Para quien olvide su contraseña. Le pones una temporal y se la dices; él la cambia luego en Perfil.
+      </p>
+      <input
+        type="email"
+        placeholder="email del jugador"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="w-full bg-ink-900 border border-ink-600 rounded-xl px-3 py-2.5"
+      />
+      <div className="flex gap-2">
+        <input
+          type="text"
+          placeholder="contraseña temporal (mín. 6)"
+          value={pw}
+          onChange={(e) => setPw(e.target.value)}
+          className="flex-1 bg-ink-900 border border-ink-600 rounded-xl px-3 py-2.5"
+        />
+        <button disabled={busy || !email.includes("@") || pw.length < 6} onClick={reset} className="btn-primary py-2 px-4">
+          {busy ? "…" : "Resetear"}
+        </button>
+      </div>
+      {msg && <p className="text-sm text-padel-400">{msg}</p>}
     </Section>
   );
 }
