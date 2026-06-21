@@ -1,5 +1,6 @@
 import { api, DEMO_MODE } from "../lib/api";
 import { SessionUser } from "../lib/types";
+import { InstallButton } from "../components/InstallButton";
 
 export function Profile({ user }: { user: SessionUser | null }) {
   return (
@@ -12,9 +13,13 @@ export function Profile({ user }: { user: SessionUser | null }) {
         </div>
       </div>
 
+      <div className="card p-4 space-y-2">
+        <h3 className="font-semibold text-sm">Instalar como app</h3>
+        <InstallButton />
+      </div>
+
       <div className="card divide-y divide-ink-700 text-sm">
         <Row label="Modo" value={DEMO_MODE ? "Demo (datos en memoria)" : "Conectado a PTG"} />
-        <Row label="Instalar app" value="Menú navegador → Añadir a inicio" />
         <Row label="Cómo funcionan las cuotas" value="Ranking actual + histórico, se mueven con el dinero" />
       </div>
 
