@@ -110,3 +110,13 @@ export interface PendingMatch {
   scheduledAt: string;
   grupo?: string;
 }
+
+/** Deuda/cobro de la última liquidación quincenal. */
+export interface SettlementDebt {
+  id: string;
+  direction: "pay" | "receive"; // pay = tú pagas; receive = te pagan
+  otherName: string;
+  tokens: number;
+  euros: number;
+  status: "pending" | "confirmed";
+}

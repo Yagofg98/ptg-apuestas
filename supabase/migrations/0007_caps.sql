@@ -6,8 +6,8 @@
 -- Y los depósitos pasan a auto-acreditarse (sin tesorero) vía deposit_tokens().
 -- ============================================================================
 
-alter table odds_settings add column if not exists max_stake_per_match      numeric not null default 2000;
-alter table odds_settings add column if not exists monthly_deposit_cap_tokens numeric not null default 10000;
+alter table odds_settings add column if not exists max_stake_per_match      numeric not null default 500;   -- 5€
+alter table odds_settings add column if not exists monthly_deposit_cap_tokens numeric not null default 2000; -- 20€
 alter table odds_settings add column if not exists tokens_per_eur            numeric not null default 100;
 
 -- ----------------------------------------------------------------------------

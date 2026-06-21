@@ -19,9 +19,9 @@ export function Profile({ user }: { user: SessionUser | null }) {
       </div>
 
       <div className="card p-4 text-[11px] text-gray-500 leading-relaxed">
-        ⚠️ Apuestas sociales entre amigos. Los tokens representan saldo depositado
-        (1€ = 100 tk). El dinero real lo gestiona el tesorero fuera de la app. Juega
-        con cabeza.
+        ⚠️ Apuestas sociales entre amigos. Los tokens son dinero real (1€ = 100 tk): el
+        saldo se acredita al instante (con tope mensual) y cada 15 días se liquida por
+        Bizum entre jugadores en la pestaña "Deudas". Juega con cabeza.
       </div>
 
       {!DEMO_MODE && (

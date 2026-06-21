@@ -7,6 +7,7 @@ import { fmtTokens } from "./lib/format";
 import { BetSlip } from "./components/BetSlip";
 import { Matches } from "./pages/Matches";
 import { Create } from "./pages/Create";
+import { Debts } from "./pages/Debts";
 import { MatchDetail } from "./pages/MatchDetail";
 import { Wallet } from "./pages/Wallet";
 import { Profile } from "./pages/Profile";
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="/create" element={<Create onChange={reloadBalance} />} />
           <Route path="/match/:id" element={<MatchDetail />} />
           <Route path="/wallet" element={<Wallet onChange={reloadBalance} />} />
+          <Route path="/debts" element={<Debts />} />
           <Route path="/profile" element={<Profile user={session} />} />
           <Route path="/admin" element={<Admin user={session} onChange={reloadBalance} />} />
         </Routes>
@@ -68,6 +70,7 @@ function BottomNav({ isAdmin }: { isAdmin: boolean }) {
     { to: "/", label: "Partidos", icon: "🎾" },
     { to: "/create", label: "Crear", icon: "➕" },
     { to: "/wallet", label: "Cartera", icon: "💰" },
+    { to: "/debts", label: "Deudas", icon: "💸" },
     ...(isAdmin ? [{ to: "/admin", label: "Admin", icon: "🛠️" }] : []),
     { to: "/profile", label: "Perfil", icon: "👤" },
   ];

@@ -14,6 +14,7 @@ import {
   PendingMatch,
   SessionUser,
   SettleInput,
+  SettlementDebt,
   OpenMatchInput,
   WalletTx,
 } from "./types";
@@ -61,6 +62,15 @@ const demoApi = {
   },
   async getDepositRoom(): Promise<number> {
     return demo.depositRoom();
+  },
+  async getCurrentNet(): Promise<number> {
+    return demo.currentNet();
+  },
+  async getMyDebts(): Promise<SettlementDebt[]> {
+    return demo.getMyDebts();
+  },
+  async confirmDebtReceived(id: string): Promise<void> {
+    demo.confirmDebtReceived(id);
   },
   subscribe(fn: () => void): () => void {
     return demoSubscribe(fn);
@@ -204,6 +214,27 @@ const realApi = {
     const { data, error } = await supabase!.rpc("deposit_room");
     if (error) throw error;
     return Number(data ?? 0);
+  },
+  async getCurrentNet(): Promise<number> {
+    const { data, error } = await supabase!.rpc("my_current_net");
+    if (error) throw error;
+    return Number(data ?? 0);
+  },
+  async getMyDebts(): Promise<SettlementDebt[]> {
+    const { data, error } = await supabase!.rpc("my_settlement");
+    if (error) throw error;
+    return (data ?? []).map((d: any) => ({
+      id: d.id,
+      direction: d.direction,
+      otherName: d.other_name ?? "Jugador",
+      tokens: Number(d.tokens),
+      euros: Number(d.euros),
+      status: d.status,
+    }));
+  },
+  async confirmDebtReceived(id: string): Promise<void> {
+    const { error } = await supabase!.rpc("confirm_debt_received", { p_debt_id: id });
+    if (error) throw error;
   },
   subscribe(fn: () => void): () => void {
     // Nombre de canal ÚNICO por suscripción: varios componentes se suscriben a la

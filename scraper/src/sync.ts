@@ -129,6 +129,13 @@ export async function syncFromDocs(payloads: any[]) {
   const p = await syncPlayers(docs);
   const s = await settleFinished(docs);
   const u = await syncUpcoming(docs);
+  // Cierre quincenal idempotente: la RPC solo actúa si han pasado ≥15 días y no hay
+  // apuestas pendientes; si no, es un no-op. No debe tumbar el sync si falla.
+  try {
+    await db.rpc("close_due_period");
+  } catch (e) {
+    console.error("! close_due_period:", (e as Error).message);
+  }
   return { docs: docs.length, ...p, ...s, ...u };
 }
 
