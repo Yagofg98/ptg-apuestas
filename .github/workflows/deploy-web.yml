@@ -35,10 +35,13 @@ jobs:
         run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      - name: Build (con las env vars del proyecto en Vercel)
+      - name: Build (las VITE_* van por env para que Vite las inyecte)
         run: vercel build --prod --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_TOKENS_PER_EUR: ${{ secrets.VITE_TOKENS_PER_EUR }}
       - name: Deploy prebuilt a producción
         run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
         env:
