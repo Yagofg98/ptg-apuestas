@@ -12,15 +12,16 @@ Variables comunes: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (ambas en `scrape
 
 ---
 
-## Opción 1 — GitHub Actions (GRATIS, recomendada)
-Cron cada 15 min, sin servidor. Ya está el workflow en `.github/workflows/scrape.yml`.
-1. Sube el repo a GitHub (privado).
+## Opción 1 — GitHub Actions, bucle continuo (GRATIS, recomendada)
+Sondeo **cada 2 min, 24/7**, sin servidor. El workflow `.github/workflows/scrape.yml`
+corre el bucle ~50 min por turno y **se relanza a sí mismo** (cadena always-on); un cron
+horario actúa de red de seguridad. **Requiere el repo PÚBLICO** para tener minutos de
+Actions gratis e ilimitados (en privado solo hay 2.000 min/mes, insuficiente para 24/7).
+El repo no contiene secretos (van en Actions Secrets), así que público solo expone el código.
+1. Repo en GitHub **público**.
 2. Repo → Settings → Secrets and variables → Actions → añade:
    `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `PTG_SESSION_JSON`.
-3. Actions → "PTG scrape" → Run (o espera al cron). Listo.
-
-> Necesito de ti: o me das un **token de GitHub** (repo+workflow) y lo subo yo, o lo
-> subes tú y pegas los 3 secrets.
+3. Al hacer push a `main` arranca solo; o Actions → "PTG scrape" → Run.
 
 ## Opción 2 — Railway (always-on, bucle cada 2 min)
 Ya está el `scraper/Dockerfile`.

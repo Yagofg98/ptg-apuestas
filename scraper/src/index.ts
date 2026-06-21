@@ -50,6 +50,16 @@ async function main() {
   };
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
+
+  // En CI encadenamos turnos: tras MAX_RUNTIME_SECONDS salimos limpio y el workflow
+  // relanza el siguiente. 0 = sin límite (VM always-on).
+  if (config.maxRuntimeMs > 0) {
+    console.log(`Turno limitado a ${config.maxRuntimeMs / 1000}s; luego relevo.`);
+    setTimeout(() => {
+      console.log("Fin del turno: cerrando para encadenar el siguiente.");
+      shutdown();
+    }, config.maxRuntimeMs).unref();
+  }
 }
 
 main();
