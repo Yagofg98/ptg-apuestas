@@ -35,7 +35,10 @@ const demoApi = {
   async getSession(): Promise<SessionUser | null> {
     return demo.getUser();
   },
-  async signInWithEmail(_email: string) {
+  async signUpWithPassword(_name: string, _email: string, _password: string) {
+    /* en demo no hay login real */
+  },
+  async signInWithPassword(_email: string, _password: string) {
     /* en demo no hay login real */
   },
   async signOut() {},
@@ -123,15 +126,21 @@ const realApi = {
       role: (profile?.role as SessionUser["role"]) ?? "player",
     };
   },
-  async signInWithEmail(email: string) {
-    // Registro/login SIN verificación: alta auto-confirmada (no se manda email) y, si
-    // ya existe, se inicia sesión. Contraseña derivada del email (apuestas entre amigos).
-    const e = email.trim().toLowerCase();
-    const password = `ptg::${e}::v1`;
-    const { error } = await supabase!.auth.signUp({ email: e, password });
-    if (error && !/already|registered|exists/i.test(error.message)) throw error;
-    const { error: e2 } = await supabase!.auth.signInWithPassword({ email: e, password });
-    if (e2) throw e2;
+  async signUpWithPassword(name: string, email: string, password: string) {
+    // Alta auto-confirmada (no se manda email). El nombre va al perfil (display_name).
+    const { error } = await supabase!.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+      options: { data: { name: name.trim() } },
+    });
+    if (error) throw error;
+  },
+  async signInWithPassword(email: string, password: string) {
+    const { error } = await supabase!.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    if (error) throw error;
   },
   async signOut() {
     await supabase!.auth.signOut();
