@@ -103,23 +103,36 @@ async function syncUpcoming(docs: any[]) {
   let created = 0;
 
   for (const m of up) {
-    // ¿ya existe? (configurado o no) → no lo tocamos
     const { data: existing } = await db
       .from("matches")
-      .select("id")
+      .select("id, status")
       .eq("ptg_match_id", m.ptgId)
       .maybeSingle();
-    if (existing) continue;
 
-    const { error } = await db.from("matches").insert({
-      ptg_match_id: m.ptgId,
-      scheduled_at: new Date(m.dateMs).toISOString(),
-      status: "pending",
-      grupo: m.group ?? AUTO_IMPORT_GROUP,
-      origin: "ptg",
-    });
-    if (error) console.error(`! importando próximo ${m.ptgId}:`, error.message);
-    else created++;
+    if (existing && existing.status !== "pending") continue; // ya configurado → no tocar
+
+    if (existing) {
+      // actualizar fecha + roster (los apuntados van creciendo en PTG)
+      const { error } = await db
+        .from("matches")
+        .update({
+          scheduled_at: new Date(m.dateMs).toISOString(),
+          ptg_player_ids: m.playerRankingIds,
+        })
+        .eq("id", existing.id);
+      if (error) console.error(`! actualizando próximo ${m.ptgId}:`, error.message);
+    } else {
+      const { error } = await db.from("matches").insert({
+        ptg_match_id: m.ptgId,
+        scheduled_at: new Date(m.dateMs).toISOString(),
+        status: "pending",
+        grupo: m.group ?? AUTO_IMPORT_GROUP,
+        origin: "ptg",
+        ptg_player_ids: m.playerRankingIds,
+      });
+      if (error) console.error(`! importando próximo ${m.ptgId}:`, error.message);
+      else created++;
+    }
   }
   return { upcoming: up.length, created };
 }

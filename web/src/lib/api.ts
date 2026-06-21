@@ -92,7 +92,7 @@ const demoApi = {
     return demo.createAdhocPlayer(name);
   },
   async listPendingMatches(): Promise<PendingMatch[]> {
-    return [];
+    return demo.listPendingMatches();
   },
   async setMatchStatus(matchId: string, status: Match["status"]): Promise<void> {
     demo.setMatchStatus(matchId, status);
@@ -310,16 +310,13 @@ const realApi = {
     return data as string;
   },
   async listPendingMatches(): Promise<PendingMatch[]> {
-    const { data, error } = await supabase!
-      .from("matches")
-      .select("id, scheduled_at, grupo")
-      .eq("status", "pending")
-      .order("scheduled_at", { ascending: true });
+    const { data, error } = await supabase!.rpc("pending_matches");
     if (error) throw error;
     return (data ?? []).map((m: any) => ({
       id: m.id,
       scheduledAt: m.scheduled_at,
       grupo: m.grupo ?? undefined,
+      playerNames: m.player_names ?? [],
     }));
   },
   async setMatchStatus(matchId: string, status: Match["status"]): Promise<void> {

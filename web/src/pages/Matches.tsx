@@ -2,20 +2,25 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLive } from "../hooks/useLive";
 import { api } from "../lib/api";
-import { Match } from "../lib/types";
+import { Match, PendingMatch } from "../lib/types";
 import { fmtOdds, teamName, whenLabel } from "../lib/format";
 
 export function Matches() {
   const { data: matches, loading } = useLive(() => api.listMatches(), []);
+  const { data: pending } = useLive(() => api.listPendingMatches(), []);
+
+  const pend = pending ?? [];
+  const open = matches ?? [];
 
   if (loading) return <ListSkeleton />;
-  if (!matches || matches.length === 0)
-    return <Empty text="No hay partidos abiertos ahora mismo." />;
+  if (open.length === 0 && pend.length === 0)
+    return <Empty text="No hay partidos abiertos ni programados ahora mismo." />;
 
   return (
     <div className="py-3 space-y-3">
       <h1 className="text-xl font-extrabold px-1">Próximos partidos</h1>
-      {matches.map((m, i) => (
+
+      {open.map((m, i) => (
         <motion.div
           key={m.id}
           initial={{ opacity: 0, y: 8 }}
@@ -25,6 +30,46 @@ export function Matches() {
           <MatchCard match={m} />
         </motion.div>
       ))}
+
+      {pend.length > 0 && (
+        <>
+          <h2 className="text-sm font-bold text-gray-400 px-1 pt-2">Programados (por confirmar)</h2>
+          {pend.map((m) => (
+            <PendingCard key={m.id} match={m} />
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+function PendingCard({ match }: { match: PendingMatch }) {
+  const names = match.playerNames ?? [];
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between text-xs mb-2">
+        <span className="text-gray-400">{whenLabel(match.scheduledAt)}</span>
+        <span className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">
+          {match.grupo ? `🔵 ${match.grupo}` : "PTG"} · por confirmar
+        </span>
+      </div>
+      <div className="text-sm">
+        {names.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {names.map((n, i) => (
+              <span key={i} className="bg-ink-700/60 rounded-full px-2 py-0.5 text-xs">{n}</span>
+            ))}
+            {names.length < 4 && (
+              <span className="text-xs text-gray-500 px-1 py-0.5">+{4 - names.length} por apuntarse…</span>
+            )}
+          </div>
+        ) : (
+          <span className="text-xs text-gray-500">Aún sin jugadores apuntados.</span>
+        )}
+      </div>
+      <Link to="/create" className="mt-3 inline-block text-sm text-padel-400 font-medium">
+        Configurar parejas →
+      </Link>
     </div>
   );
 }
