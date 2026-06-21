@@ -46,7 +46,8 @@ export class PtgClient {
 
     page.on("response", async (res) => {
       const url = res.url();
-      if (!/\/elasticsearch\/(msearch|mget)/.test(url)) return;
+      // PTG carga datos por msearch/mget y, en /partidos (próximos), por /search.
+      if (!/\/elasticsearch\/(msearch|mget|search)/.test(url)) return;
       try {
         payloads.push(await res.json());
       } catch {
@@ -55,8 +56,9 @@ export class PtgClient {
     });
 
     const base = config.ptg.baseUrl;
-    // Páginas que disparan las búsquedas de datos. Ajustar/ampliar rutas si hace falta.
-    const routes = [base + "/", base + config.ptg.feedPath];
+    // Páginas que disparan las búsquedas de datos. /partidos carga los PRÓXIMOS
+    // partidos (vía /elasticsearch/search) — clave para el grupo azul.
+    const routes = [base + "/", base + config.ptg.feedPath, base + "/partidos"];
     for (const route of routes) {
       try {
         await page.goto(route, { waitUntil: "networkidle", timeout: 30000 });

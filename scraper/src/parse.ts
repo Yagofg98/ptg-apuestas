@@ -73,10 +73,14 @@ export function collectDocs(payloads: any[]): Doc[] {
   const out: Doc[] = [];
   for (const d of payloads) {
     if (!d || typeof d !== "object") continue;
+    // msearch → { responses: [ { hits: { hits } } ] }
     for (const r of d.responses ?? []) {
       for (const h of r?.hits?.hits ?? []) if (h?._source) out.push(h._source);
     }
+    // mget → { docs: [ { _source } ] }
     for (const doc of d.docs ?? []) if (doc?._source) out.push(doc._source);
+    // search → { hits: { hits: [ { _source } ] } }  (próximos partidos en /partidos)
+    for (const h of d.hits?.hits ?? []) if (h?._source) out.push(h._source);
   }
   return out;
 }
