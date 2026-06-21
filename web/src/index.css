@@ -1,0 +1,38 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-ink-900 text-gray-100 antialiased;
+  margin: 0;
+  /* respeta los notches en iOS (PWA standalone) */
+  padding: env(safe-area-inset-top) 0 0 0;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl bg-ink-800 border border-ink-700/60 shadow-lg;
+  }
+  .odds-btn {
+    @apply flex flex-col items-center justify-center rounded-xl border border-ink-700
+      bg-ink-700/40 px-2 py-2 transition active:scale-95 select-none;
+  }
+  .odds-btn-active {
+    @apply border-padel-500 bg-padel-600/30 ring-2 ring-padel-500;
+  }
+  .btn-primary {
+    @apply rounded-xl bg-padel-600 px-4 py-3 font-semibold text-white
+      transition active:scale-95 disabled:opacity-40 disabled:active:scale-100;
+  }
+}

@@ -1,0 +1,119 @@
+import { createClient } from "@supabase/supabase-js";
+import { config } from "./config.ts";
+import { writeFileSync } from "node:fs";
+import {
+  collectDocs,
+  parsePlayers,
+  parseMatches,
+  rawUpcomingMatches,
+  type PtgMatch,
+} from "./parse.ts";
+
+const db = createClient(config.supabase.url, config.supabase.serviceRoleKey, {
+  auth: { persistSession: false },
+});
+
+/**
+ * Sincroniza jugadores PTG → Supabase. Usamos el `rankingId` (custom.usuario_ranking)
+ * como `ptg_player_id`. SOLO actualiza nombre + % de victorias de los jugadores que
+ * vea en esta pasada; NO toca las POSICIONES de ranking, porque PTG (Bubble SPA) no
+ * deja leer el grupo completo por URL y recalcular posiciones con datos parciales las
+ * corrompería. Las posiciones se mantienen del seed (recalcular = tarea aparte con el
+ * grupo completo). Jugadores nuevos entran con ranking 999 hasta una recálculo manual.
+ */
+async function syncPlayers(docs: any[]) {
+  const players = parsePlayers(docs);
+  if (players.length === 0) return { count: 0 };
+
+  const rows = players.map((p) => ({
+    ptg_player_id: p.rankingId,
+    name: p.name,
+    current_win_pct: round4(p.currentWinPct),
+    historic_win_pct: round4(p.historicWinPct),
+    updated_at: new Date().toISOString(),
+  }));
+
+  // upsert: en filas existentes solo cambia las columnas presentes (no las posiciones)
+  const { error } = await db.from("players").upsert(rows, { onConflict: "ptg_player_id" });
+  if (error) throw error;
+  return { count: rows.length };
+}
+
+/**
+ * Liquida en Supabase los partidos PTG que ya tengan resultado y que existan en
+ * nuestra BD (creados por admin o por una futura sincronización de próximos).
+ * El lado ganador (A/B) se deduce comparando los ganadores PTG con las parejas
+ * almacenadas en el partido.
+ */
+async function settleFinished(docs: any[]) {
+  const matches = parseMatches(docs).filter((m) => m.result);
+  let settled = 0;
+
+  for (const m of matches) {
+    const { data: row } = await db
+      .from("matches")
+      .select(
+        `id, status,
+         a1:team_a_p1(ptg_player_id), a2:team_a_p2(ptg_player_id),
+         b1:team_b_p1(ptg_player_id), b2:team_b_p2(ptg_player_id)`,
+      )
+      .eq("ptg_match_id", m.id)
+      .maybeSingle();
+    if (!row || row.status === "settled") continue;
+
+    const winner = decideWinnerSide(m, row);
+    if (!winner) continue; // no podemos mapear las parejas con seguridad
+
+    const { error } = await db.rpc("settle_match", {
+      p_match_id: row.id,
+      p_winner: winner,
+      p_had_bagel: m.result!.hadBagel,
+      p_three_sets: m.result!.wentTo3Sets,
+      p_set_scores: m.result!.setScores,
+    });
+    if (error) console.error(`! liquidando ${m.id}:`, error.message);
+    else settled++;
+  }
+  return { settled };
+}
+
+function decideWinnerSide(m: PtgMatch, row: any): "A" | "B" | null {
+  const teamA = [row.a1?.ptg_player_id, row.a2?.ptg_player_id].filter(Boolean);
+  const teamB = [row.b1?.ptg_player_id, row.b2?.ptg_player_id].filter(Boolean);
+  const winners = m.result!.winnerRankingIds;
+  const inA = winners.filter((w) => teamA.includes(w)).length;
+  const inB = winners.filter((w) => teamB.includes(w)).length;
+  if (inA === 2) return "A";
+  if (inB === 2) return "B";
+  return null;
+}
+
+/**
+ * Auto-descubrimiento de la estructura de partidos PRÓXIMOS (parejas pre-partido).
+ * Vuelca a un fichero los campos del primer partido futuro con parejas para mapear
+ * el mercado "pareja ganadora". Se ejecuta hasta que lo mapeemos.
+ */
+function discoverUpcoming(docs: any[]) {
+  const up = rawUpcomingMatches(docs);
+  if (up.length === 0) return { upcoming: 0 };
+  try {
+    writeFileSync("/tmp/ptg-upcoming.json", JSON.stringify(up, null, 2));
+  } catch {}
+  console.log(
+    `🔎 ${up.length} partido(s) PRÓXIMO(s) con datos detectado(s). Campos del 1º:`,
+    Object.keys(up[0]).join(", "),
+  );
+  return { upcoming: up.length };
+}
+
+export async function syncFromDocs(payloads: any[]) {
+  const docs = collectDocs(payloads);
+  const p = await syncPlayers(docs);
+  const s = await settleFinished(docs);
+  const u = discoverUpcoming(docs);
+  return { docs: docs.length, ...p, ...s, ...u };
+}
+
+function round4(x: number): number {
+  return Math.round(x * 10000) / 10000;
+}

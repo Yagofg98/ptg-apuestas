@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+.ptg-session.json
+.vite/
+coverage/
+
+# datos capturados de PTG (referencia, no commitear)
+scraper/fixtures/
+scraper/.ptg-profile/
