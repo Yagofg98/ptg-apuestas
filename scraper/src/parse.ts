@@ -245,6 +245,8 @@ export interface PtgUpcoming {
   dateMs: number;
   group?: string;
   city?: string;
+  /** ranking ids de los jugadores ya apuntados (crece hasta 4). */
+  playerRankingIds: string[];
 }
 
 /**
@@ -262,6 +264,7 @@ export function parseUpcoming(docs: Doc[]): PtgUpcoming[] {
       dateMs,
       group: s.grupo_option_grupos,
       city: s.ciudad_option_ciudad,
+      playerRankingIds: lookupList(s.jugadores_r_list_custom_usuario_ranking),
     });
   }
   return out;

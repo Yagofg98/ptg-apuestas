@@ -109,6 +109,8 @@ export interface PendingMatch {
   id: string;
   scheduledAt: string;
   grupo?: string;
+  /** nombres de los jugadores ya apuntados en PTG (crece hasta 4). */
+  playerNames: string[];
 }
 
 /** Deuda/cobro de la última liquidación quincenal. */

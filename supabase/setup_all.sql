@@ -1192,3 +1192,22 @@ language sql security definer set search_path = public stable as $$
      and d.period_id = (select id from settlement_periods where status = 'settled' order by closed_at desc limit 1)
    order by d.status, d.tokens desc;
 $$;
+
+-- ░░░░░░░░░░ migrations/0009_pending_roster.sql ░░░░░░░░░░
+
+alter table matches add column if not exists ptg_player_ids jsonb;
+
+create or replace function pending_matches()
+returns table(id uuid, scheduled_at timestamptz, grupo text, player_names text[])
+language sql security definer set search_path = public stable as $$
+  select m.id, m.scheduled_at, m.grupo,
+         coalesce(
+           (select array_agg(p.name order by p.name)
+              from players p
+             where p.ptg_player_id in (select jsonb_array_elements_text(m.ptg_player_ids))),
+           '{}'::text[]
+         ) as player_names
+    from matches m
+   where m.status = 'pending'
+   order by m.scheduled_at;
+$$;

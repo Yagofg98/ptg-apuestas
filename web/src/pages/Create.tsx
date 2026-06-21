@@ -38,17 +38,27 @@ function PtgPending({ onChange }: { onChange: () => void }) {
       {pending.map((m: PendingMatch) => (
         <div key={m.id} className="bg-ink-700/40 rounded-xl p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <div className="text-sm">
+            <div className="text-sm min-w-0">
               <div className="font-semibold">{m.grupo ? `Grupo ${m.grupo}` : "Partido PTG"}</div>
               <div className="text-xs text-gray-400">{whenLabel(m.scheduledAt)}</div>
             </div>
             <button
               onClick={() => setOpenId((id) => (id === m.id ? null : m.id))}
-              className="text-xs bg-ink-600 rounded-lg px-2 py-1"
+              className="text-xs bg-ink-600 rounded-lg px-2 py-1 shrink-0"
             >
               {openId === m.id ? "Cerrar" : "Configurar"}
             </button>
           </div>
+          {(m.playerNames ?? []).length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {m.playerNames.map((n, i) => (
+                <span key={i} className="bg-ink-700/60 rounded-full px-2 py-0.5 text-xs">{n}</span>
+              ))}
+              {m.playerNames.length < 4 && (
+                <span className="text-xs text-gray-500 px-1 py-0.5">+{4 - m.playerNames.length} por apuntarse…</span>
+              )}
+            </div>
+          )}
           {openId === m.id && (
             <div className="pt-1 border-t border-ink-600">
               <NewMatchForm

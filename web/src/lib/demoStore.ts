@@ -313,6 +313,18 @@ export const demo = {
     emit();
   },
 
+  // Partidos PTG por confirmar (demo): uno de azul con apuntados creciendo.
+  listPendingMatches() {
+    return [
+      {
+        id: "demo-pending-1",
+        scheduledAt: new Date(Date.now() + 2 * 24 * 3600_000).toISOString(),
+        grupo: "azul",
+        playerNames: [roster[0].name, roster[8].name, roster[1].name],
+      },
+    ];
+  },
+
   // ---- Admin ----
   listPlayers: () => roster,
   listPendingDeposits: () => state.deposits,
