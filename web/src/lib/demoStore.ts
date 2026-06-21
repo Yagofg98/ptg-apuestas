@@ -22,6 +22,7 @@ import {
   SessionUser,
   PendingDeposit,
   SettleInput,
+  SettlementDebt,
   OpenMatchInput,
 } from "./types";
 
@@ -45,8 +46,8 @@ function mkPlayer(
 const CFG = { ...DEFAULT_CONFIG, leagueSize: 40, alpha: 0.35, decisiveness: 0.28 };
 
 // Topes (espejo de odds_settings en el backend real).
-const MAX_STAKE_PER_MATCH = 2000;
-const MONTHLY_DEPOSIT_CAP = 10000;
+const MAX_STAKE_PER_MATCH = 500; // 5€
+const MONTHLY_DEPOSIT_CAP = 2000; // 20€
 
 // Roster REAL del grupo "Madrid Mas Azul" (capturado de PTG, ordenado por ranking
 // histórico). mkPlayer(nombre, ranking_actual, win_actual, ranking_histórico, win_histórico).
@@ -154,6 +155,8 @@ interface DemoState {
   comboPools: Record<string, number>;
   // tokens ingresados este mes (para el tope mensual de depósito).
   depositedThisMonth: number;
+  // deudas/cobros de la última liquidación (demo).
+  debts: SettlementDebt[];
 }
 
 const state: DemoState = {
@@ -174,7 +177,13 @@ const state: DemoState = {
     { id: uid(), userName: "Pablo Ausín García", amountEur: 20, tokens: 2000, createdAt: new Date().toISOString() },
   ],
   comboPools: {},
-  depositedThisMonth: 0,
+  // el saldo inicial sembrado cuenta como ingreso del periodo → neto arranca en 0.
+  depositedThisMonth: 1500,
+  // Ejemplo de una liquidación ya cerrada (para ver la pestaña en demo).
+  debts: [
+    { id: uid(), direction: "pay", otherName: "Pablo Ausín García", tokens: 500, euros: 5, status: "pending" },
+    { id: uid(), direction: "receive", otherName: "Nacho Justicia", tokens: 800, euros: 8, status: "pending" },
+  ],
 };
 
 // ---- Suscripción simple para que la UI reaccione a cambios (cuotas/saldo) ----
@@ -288,6 +297,20 @@ export const demo = {
 
   depositRoom() {
     return Math.max(MONTHLY_DEPOSIT_CAP - state.depositedThisMonth, 0);
+  },
+
+  // Neto del periodo en vivo: saldo − ingresado en el periodo.
+  currentNet() {
+    return Math.round((state.balance - state.depositedThisMonth) * 100) / 100;
+  },
+  getMyDebts(): SettlementDebt[] {
+    // copias para que la UI (useLive) detecte el cambio tras confirmar.
+    return state.debts.map((d) => ({ ...d }));
+  },
+  confirmDebtReceived(id: string) {
+    const d = state.debts.find((x) => x.id === id);
+    if (d) d.status = "confirmed";
+    emit();
   },
 
   // ---- Admin ----
