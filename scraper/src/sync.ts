@@ -1,13 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 import { config } from "./config.ts";
-import { writeFileSync } from "node:fs";
 import {
   collectDocs,
   parsePlayers,
   parseMatches,
-  rawUpcomingMatches,
+  parseUpcoming,
   type PtgMatch,
 } from "./parse.ts";
+
+// Grupo PTG que auto-importamos como próximos partidos a configurar.
+const AUTO_IMPORT_GROUP = process.env.PTG_AUTO_GROUP ?? "azul";
 
 const db = createClient(config.supabase.url, config.supabase.serviceRoleKey, {
   auth: { persistSession: false },
@@ -89,28 +91,44 @@ function decideWinnerSide(m: PtgMatch, row: any): "A" | "B" | null {
 }
 
 /**
- * Auto-descubrimiento de la estructura de partidos PRÓXIMOS (parejas pre-partido).
- * Vuelca a un fichero los campos del primer partido futuro con parejas para mapear
- * el mercado "pareja ganadora". Se ejecuta hasta que lo mapeemos.
+ * Auto-importa los próximos partidos del grupo configurado (azul) como partidos
+ * 'pending' en Supabase: solo fecha + grupo, SIN parejas (PTG no las publica hasta
+ * que el partido acaba). En la app alguien asigna las 2 parejas y se abren a apuestas.
+ * Sólo crea filas nuevas; NO toca partidos ya configurados/abiertos.
  */
-function discoverUpcoming(docs: any[]) {
-  const up = rawUpcomingMatches(docs);
-  if (up.length === 0) return { upcoming: 0 };
-  try {
-    writeFileSync("/tmp/ptg-upcoming.json", JSON.stringify(up, null, 2));
-  } catch {}
-  console.log(
-    `🔎 ${up.length} partido(s) PRÓXIMO(s) con datos detectado(s). Campos del 1º:`,
-    Object.keys(up[0]).join(", "),
+async function syncUpcoming(docs: any[]) {
+  const up = parseUpcoming(docs).filter(
+    (m) => (m.group ?? "").toLowerCase() === AUTO_IMPORT_GROUP,
   );
-  return { upcoming: up.length };
+  let created = 0;
+
+  for (const m of up) {
+    // ¿ya existe? (configurado o no) → no lo tocamos
+    const { data: existing } = await db
+      .from("matches")
+      .select("id")
+      .eq("ptg_match_id", m.ptgId)
+      .maybeSingle();
+    if (existing) continue;
+
+    const { error } = await db.from("matches").insert({
+      ptg_match_id: m.ptgId,
+      scheduled_at: new Date(m.dateMs).toISOString(),
+      status: "pending",
+      grupo: m.group ?? AUTO_IMPORT_GROUP,
+      origin: "ptg",
+    });
+    if (error) console.error(`! importando próximo ${m.ptgId}:`, error.message);
+    else created++;
+  }
+  return { upcoming: up.length, created };
 }
 
 export async function syncFromDocs(payloads: any[]) {
   const docs = collectDocs(payloads);
   const p = await syncPlayers(docs);
   const s = await settleFinished(docs);
-  const u = discoverUpcoming(docs);
+  const u = await syncUpcoming(docs);
   return { docs: docs.length, ...p, ...s, ...u };
 }
 

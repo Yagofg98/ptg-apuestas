@@ -32,7 +32,7 @@ export function Login({ onDone }: { onDone: () => void }) {
         {sent ? (
           <div className="card p-5">
             <p className="text-padel-400 font-semibold">Revisa tu email ✉️</p>
-            <p className="text-sm text-gray-400 mt-1">Te enviamos un enlace mágico para entrar.</p>
+            <p className="text-sm text-gray-400 mt-1">Te enviamos un enlace para entrar.</p>
             <button onClick={onDone} className="text-xs text-gray-500 mt-3 underline">Ya he entrado</button>
           </div>
         ) : (

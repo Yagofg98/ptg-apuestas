@@ -267,6 +267,14 @@ export const demo = {
   listPlayers: () => roster,
   listPendingDeposits: () => state.deposits,
 
+  // Alta rápida de un jugador suelto (sin ranking): defaults ≈ 50%.
+  createAdhocPlayer(name: string) {
+    const p = mkPlayer(name.trim(), 999, 0.5, 999, 0.5);
+    roster.push(p);
+    emit();
+    return p.id;
+  },
+
   confirmDeposit(id: string) {
     const idx = state.deposits.findIndex((d) => d.id === id);
     if (idx < 0) return;
