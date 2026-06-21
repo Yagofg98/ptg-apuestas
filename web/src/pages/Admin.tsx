@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useLive } from "../hooks/useLive";
 import { api } from "../lib/api";
-import { Match, Player, SessionUser } from "../lib/types";
+import { Match, SessionUser } from "../lib/types";
 import { fmtTokens, teamName, whenLabel } from "../lib/format";
+import { NewMatchForm } from "../components/NewMatchForm";
 
 export function Admin({ user, onChange }: { user: SessionUser | null; onChange: () => void }) {
   if (user && user.role !== "admin" && user.role !== "treasurer") {
@@ -13,7 +14,9 @@ export function Admin({ user, onChange }: { user: SessionUser | null; onChange: 
       <h1 className="text-xl font-extrabold px-1">Panel admin</h1>
       <InvitePlayer />
       <Deposits onChange={onChange} />
-      <NewMatch />
+      <Section title="Crear partido">
+        <NewMatchForm origin="admin" onCreated={onChange} />
+      </Section>
       <ManageMatches onChange={onChange} />
     </div>
   );
@@ -110,71 +113,6 @@ function Deposits({ onChange }: { onChange: () => void }) {
           <button onClick={() => confirm(d.id)} className="btn-primary py-2 px-3 text-sm">Confirmar</button>
         </div>
       ))}
-    </Section>
-  );
-}
-
-function NewMatch() {
-  const { data: players } = useLive(() => api.listPlayers(), []);
-  const [sel, setSel] = useState<string[]>(["", "", "", ""]);
-  const [when, setWhen] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const labels = ["Pareja A · jugador 1", "Pareja A · jugador 2", "Pareja B · jugador 1", "Pareja B · jugador 2"];
-  const dupes = new Set(sel.filter(Boolean)).size !== sel.filter(Boolean).length;
-  const ready = sel.every(Boolean) && !dupes;
-
-  async function create() {
-    setBusy(true);
-    setMsg(null);
-    try {
-      await api.openMatch({
-        scheduledAt: when ? new Date(when).toISOString() : new Date(Date.now() + 3600_000).toISOString(),
-        teamAp1: sel[0], teamAp2: sel[1], teamBp1: sel[2], teamBp2: sel[3],
-      });
-      setMsg("✓ Partido creado y abierto a apuestas.");
-      setSel(["", "", "", ""]);
-    } catch (e: any) {
-      setMsg(e.message ?? "Error");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Section title="Crear partido">
-      {labels.map((lab, i) => (
-        <div key={i}>
-          <label className="text-xs text-gray-400">{lab}</label>
-          <select
-            value={sel[i]}
-            onChange={(e) => setSel((s) => s.map((v, j) => (j === i ? e.target.value : v)))}
-            className="w-full bg-ink-900 border border-ink-600 rounded-xl px-3 py-2.5 mt-1"
-          >
-            <option value="">— elegir —</option>
-            {(players ?? []).map((p: Player) => (
-              <option key={p.id} value={p.id}>
-                {p.name} (#{p.currentRanking})
-              </option>
-            ))}
-          </select>
-        </div>
-      ))}
-      <div>
-        <label className="text-xs text-gray-400">Fecha/hora (opcional)</label>
-        <input
-          type="datetime-local"
-          value={when}
-          onChange={(e) => setWhen(e.target.value)}
-          className="w-full bg-ink-900 border border-ink-600 rounded-xl px-3 py-2.5 mt-1"
-        />
-      </div>
-      {dupes && <p className="text-amber-400 text-sm">No repitas jugadores.</p>}
-      {msg && <p className="text-padel-400 text-sm">{msg}</p>}
-      <button disabled={!ready || busy} onClick={create} className="btn-primary w-full">
-        {busy ? "Creando…" : "Crear partido"}
-      </button>
     </Section>
   );
 }

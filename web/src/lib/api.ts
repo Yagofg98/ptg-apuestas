@@ -11,6 +11,7 @@ import {
   Match,
   Player,
   PendingDeposit,
+  PendingMatch,
   SessionUser,
   SettleInput,
   OpenMatchInput,
@@ -73,6 +74,12 @@ const demoApi = {
   },
   async openMatch(input: OpenMatchInput): Promise<string> {
     return demo.openMatch(input);
+  },
+  async createAdhocPlayer(name: string): Promise<string> {
+    return demo.createAdhocPlayer(name);
+  },
+  async listPendingMatches(): Promise<PendingMatch[]> {
+    return [];
   },
   async setMatchStatus(matchId: string, status: Match["status"]): Promise<void> {
     demo.setMatchStatus(matchId, status);
@@ -258,9 +265,29 @@ const realApi = {
       p_team_b_p1: input.teamBp1, p_team_b_p2: input.teamBp2,
       p_markets: markets,
       p_ptg_match_id: null,
+      p_origin: input.origin ?? "user",
+      p_existing_match_id: input.existingMatchId ?? null,
     });
     if (error) throw error;
     return data as string;
+  },
+  async createAdhocPlayer(name: string): Promise<string> {
+    const { data, error } = await supabase!.rpc("create_adhoc_player", { p_name: name });
+    if (error) throw error;
+    return data as string;
+  },
+  async listPendingMatches(): Promise<PendingMatch[]> {
+    const { data, error } = await supabase!
+      .from("matches")
+      .select("id, scheduled_at, grupo")
+      .eq("status", "pending")
+      .order("scheduled_at", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((m: any) => ({
+      id: m.id,
+      scheduledAt: m.scheduled_at,
+      grupo: m.grupo ?? undefined,
+    }));
   },
   async setMatchStatus(matchId: string, status: Match["status"]): Promise<void> {
     const { error } = await supabase!.rpc("set_match_status", { p_match_id: matchId, p_status: status });

@@ -98,4 +98,15 @@ export interface OpenMatchInput {
   teamAp2: string;
   teamBp1: string;
   teamBp2: string;
+  /** 'user' (creado en la app) | 'admin' | 'ptg'. Por defecto 'user'. */
+  origin?: "user" | "admin" | "ptg";
+  /** Si se rellena un shell PTG ya importado (status 'pending'), su id. */
+  existingMatchId?: string;
+}
+
+/** Partido importado de PTG aún sin parejas configuradas (status 'pending'). */
+export interface PendingMatch {
+  id: string;
+  scheduledAt: string;
+  grupo?: string;
 }

@@ -6,6 +6,7 @@ import { SessionUser } from "./lib/types";
 import { fmtTokens } from "./lib/format";
 import { BetSlip } from "./components/BetSlip";
 import { Matches } from "./pages/Matches";
+import { Create } from "./pages/Create";
 import { MatchDetail } from "./pages/MatchDetail";
 import { Wallet } from "./pages/Wallet";
 import { Profile } from "./pages/Profile";
@@ -32,6 +33,7 @@ export default function App() {
       <main className="px-3">
         <Routes>
           <Route path="/" element={<Matches />} />
+          <Route path="/create" element={<Create onChange={reloadBalance} />} />
           <Route path="/match/:id" element={<MatchDetail />} />
           <Route path="/wallet" element={<Wallet onChange={reloadBalance} />} />
           <Route path="/profile" element={<Profile user={session} />} />
@@ -64,6 +66,7 @@ function Header({ balance }: { balance: number }) {
 function BottomNav({ isAdmin }: { isAdmin: boolean }) {
   const items = [
     { to: "/", label: "Partidos", icon: "🎾" },
+    { to: "/create", label: "Crear", icon: "➕" },
     { to: "/wallet", label: "Cartera", icon: "💰" },
     ...(isAdmin ? [{ to: "/admin", label: "Admin", icon: "🛠️" }] : []),
     { to: "/profile", label: "Perfil", icon: "👤" },

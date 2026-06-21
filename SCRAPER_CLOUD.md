@@ -1,8 +1,9 @@
 # Scraper PTG 24/7 (sin tu Mac)
 
-El scraper actualiza win% de jugadores, liquida partidos terminados y **auto-descubre
-partidos próximos** (clave para mapear las parejas ~2h antes). Para que corra solo hay
-dos caminos. Ambos necesitan la **sesión de PTG** como variable:
+El scraper actualiza win% de jugadores, liquida partidos terminados y **auto-importa los
+próximos partidos del grupo azul** como partidos `pending` (alguien les asigna las parejas
+en la app para abrir apuestas). Para que corra solo hay dos caminos. Ambos necesitan la
+**sesión de PTG** como variable:
 
 - `PTG_SESSION_JSON` = contenido de `scraper/.ptg-session.json` (un JSON largo).
   Cuando caduque (Bubble), re-ejecuta `node capture.mjs` en local y actualiza el secreto.
@@ -31,9 +32,9 @@ Ya está el `scraper/Dockerfile`.
 
 ---
 
-## Mercado "pareja ganadora" (pendiente de datos)
-Un partido próximo en PTG solo guarda la **lista de apuntados**; las **parejas** no
-existen como campo hasta ~2h antes. Con el scraper corriendo 24/7, cuando un partido
-entre en esa ventana, el auto-descubrimiento volcará el registro completo (a
-`/tmp/ptg-upcoming.json` y al log) → ahí se ve el campo de parejas y lo mapeo en
-minutos para abrir ese mercado automáticamente. Hasta entonces, el admin lo abre a mano.
+## Mercado "pareja ganadora" (parejas a mano)
+CONFIRMADO: PTG **no publica las parejas hasta que el partido acaba** (los próximos solo
+traen fecha + grupo + ≤1 apuntado). Por eso el scraper crea los próximos de azul como
+`status='pending'` y en la app (página **➕ Crear** → "Partidos PTG por configurar")
+alguien asigna las 2 parejas → se calculan cuotas y se abre a apuestas. El grupo se
+configura con `PTG_AUTO_GROUP` (por defecto `azul`).

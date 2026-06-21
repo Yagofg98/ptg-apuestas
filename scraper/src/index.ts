@@ -20,7 +20,7 @@ async function tick(client: PtgClient) {
     const payloads = await client.fetchDocs();
     const res = await syncFromDocs(payloads);
     console.log(
-      `[${new Date().toISOString()}] sync OK — ${res.docs} docs, ${res.count} jugadores, ${res.settled} partidos liquidados`,
+      `[${new Date().toISOString()}] sync OK — ${res.docs} docs, ${res.count} jugadores, ${res.settled} liquidados, ${res.created}/${res.upcoming} próximos importados`,
     );
   } catch (err) {
     // Resiliencia: un fallo NO debe tumbar el proceso. El admin puede operar a mano.

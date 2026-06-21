@@ -236,6 +236,33 @@ export function rawUpcomingMatches(docs: Doc[]): Doc[] {
   return [...out.values()];
 }
 
+export interface PtgUpcoming {
+  ptgId: string;
+  dateMs: number;
+  group?: string;
+  city?: string;
+}
+
+/**
+ * Próximos partidos con fecha (PTG NO publica las parejas hasta que el partido acaba,
+ * así que aquí solo hay fecha + grupo). El scraper los crea como partidos 'pending'
+ * para que alguien asigne las 2 parejas en la app y se abran a apuestas.
+ */
+export function parseUpcoming(docs: Doc[]): PtgUpcoming[] {
+  const out: PtgUpcoming[] = [];
+  for (const s of rawUpcomingMatches(docs)) {
+    const dateMs = num(s.fecha_partido_date, NaN);
+    if (!Number.isFinite(dateMs)) continue;
+    out.push({
+      ptgId: s._id,
+      dateMs,
+      group: s.grupo_option_grupos,
+      city: s.ciudad_option_ciudad,
+    });
+  }
+  return out;
+}
+
 /**
  * Deriva la posición de ranking (1 = mejor) ordenando por ratio dentro del grupo.
  * El motor de cuotas (odds.ts) usa posición + % victorias.
