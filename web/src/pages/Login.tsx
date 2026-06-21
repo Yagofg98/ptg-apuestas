@@ -54,9 +54,9 @@ export function Login({ onDone }: { onDone: () => void }) {
             <input
               inputMode="numeric"
               autoComplete="one-time-code"
-              placeholder="código de 6 dígitos"
+              placeholder="código del email"
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
               className="w-full bg-ink-900 border border-ink-600 rounded-xl px-3 py-3 text-center text-lg tracking-[0.3em] tabular-nums"
             />
             {error && <p className="text-red-400 text-sm">{error}</p>}
