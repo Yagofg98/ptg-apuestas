@@ -41,6 +41,12 @@ const demoApi = {
   async signInWithPassword(_email: string, _password: string) {
     /* en demo no hay login real */
   },
+  async changePassword(_newPassword: string) {
+    /* en demo no hay login real */
+  },
+  async adminResetPassword(_email: string, _password: string) {
+    /* en demo no hay login real */
+  },
   async signOut() {},
   async listMatches(): Promise<Match[]> {
     return demo.getMatches();
@@ -141,6 +147,17 @@ const realApi = {
       password,
     });
     if (error) throw error;
+  },
+  async changePassword(newPassword: string) {
+    const { error } = await supabase!.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+  },
+  async adminResetPassword(email: string, password: string) {
+    const { data, error } = await supabase!.functions.invoke("admin-reset-password", {
+      body: { email: email.trim().toLowerCase(), password },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
   },
   async signOut() {
     await supabase!.auth.signOut();
