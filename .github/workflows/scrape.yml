@@ -1,0 +1,31 @@
+# Scraper PTG por cron en GitHub Actions (GRATIS, sin servidor propio).
+# Requiere subir el repo a GitHub y configurar Secrets:
+#   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, PTG_SESSION_JSON
+# (PTG_SESSION_JSON = contenido de scraper/.ptg-session.json)
+name: PTG scrape
+
+on:
+  schedule:
+    - cron: "*/15 * * * *" # cada 15 min (mínimo de GitHub)
+  workflow_dispatch: {}
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: scraper
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install
+      - run: npx playwright install --with-deps chromium
+      - run: node --experimental-strip-types src/index.ts --once
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SESSION_JSON: ${{ secrets.PTG_SESSION_JSON }}
+          PTG_BASE_URL: https://padelteamgourmet.com
+          PTG_FEED_PATH: /feed
