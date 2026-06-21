@@ -48,8 +48,11 @@ jobs:
           PTG_FEED_PATH: /feed
           POLL_INTERVAL_SECONDS: "120"
           MAX_RUNTIME_SECONDS: "3000"
+      # Solo encadenamos si el turno fue bien. Si la sesión PTG caducó, el scraper sale
+      # con código 1 (job fallido → email de GitHub) y NO se encadena: deja de machacar.
+      # El cron horario reintenta; al regenerar el secret, el siguiente run reanuda la cadena.
       - name: Encadenar el siguiente turno
-        if: always()
+        if: success()
         run: gh workflow run scrape.yml --ref main
         env:
           GH_TOKEN: ${{ github.token }}

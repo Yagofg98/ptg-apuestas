@@ -4,6 +4,12 @@ import { syncFromDocs } from "./sync.ts";
 
 const ONCE = process.argv.includes("--once");
 
+// Salud de la sesión: si la sesión PTG caduca, fetchDocs deja de interceptar datos
+// (PTG redirige a login) → 0 docs/0 jugadores. Tras N pasadas malas SEGUIDAS fallamos
+// ruidosamente (exit 1) para que GitHub avise por email; el bucle sano resetea a 0.
+const MAX_CONSECUTIVE_FAILS = Number(process.env.MAX_CONSECUTIVE_FAILS ?? 3);
+let consecutiveFails = 0;
+
 function assertConfig() {
   const missing = [
     ["SUPABASE_URL", config.supabase.url],
@@ -16,15 +22,37 @@ function assertConfig() {
 }
 
 async function tick(client: PtgClient) {
+  let healthy = false;
   try {
     const payloads = await client.fetchDocs();
     const res = await syncFromDocs(payloads);
+    // Sesión viva ⇒ siempre hay jugadores/rankings. 0 docs/0 jugadores ⇒ sesión muerta.
+    healthy = res.docs > 0 && res.count > 0;
     console.log(
       `[${new Date().toISOString()}] sync OK — ${res.docs} docs, ${res.count} jugadores, ${res.settled} liquidados, ${res.created}/${res.upcoming} próximos importados`,
     );
+    if (!healthy) {
+      console.error(
+        `[${new Date().toISOString()}] ⚠️ pasada sin datos (${consecutiveFails + 1}/${MAX_CONSECUTIVE_FAILS}) — ¿sesión PTG caducada?`,
+      );
+    }
   } catch (err) {
-    // Resiliencia: un fallo NO debe tumbar el proceso. El admin puede operar a mano.
-    console.error(`[${new Date().toISOString()}] sync ERROR:`, (err as Error).message);
+    console.error(
+      `[${new Date().toISOString()}] sync ERROR (${consecutiveFails + 1}/${MAX_CONSECUTIVE_FAILS}):`,
+      (err as Error).message,
+    );
+  }
+
+  consecutiveFails = healthy ? 0 : consecutiveFails + 1;
+  if (consecutiveFails >= MAX_CONSECUTIVE_FAILS) {
+    console.error(
+      "❌ Sesión PTG probablemente CADUCADA. Regenera la sesión: `cd scraper && node capture.mjs` " +
+        "(login a mano), copia el nuevo .ptg-session.json al secret PTG_SESSION_JSON y re-lanza el workflow.",
+    );
+    // Sin await: cerrar el navegador puede colgarse con ticks solapados; salimos ya
+    // (process.exit mata el proceso y su Chromium). El job falla → GitHub avisa.
+    void client.close().catch(() => {});
+    process.exit(1);
   }
 }
 

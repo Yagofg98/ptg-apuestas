@@ -10,6 +10,21 @@ en la app para abrir apuestas). Para que corra solo hay dos caminos. Ambos neces
 
 Variables comunes: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (ambas en `scraper/.env`).
 
+## Cuándo caduca la sesión y qué hacer (cero vigilancia)
+El token de PTG dura **~1 año** y el scraper (cada 2 min) suele **auto-renovarlo**, así que
+en la práctica casi nunca caduca. Solo se rompe si cambias la contraseña de PTG, haces
+"cerrar sesión en todos los dispositivos" o Bubble resetea sesiones.
+
+**No necesitas vigilar nada.** Si la sesión muere, tras unas pasadas sin datos el scraper
+sale con error → el run de Actions **falla** → **GitHub te manda un email**. Entonces:
+1. `cd scraper && node capture.mjs` → haz login a mano en la ventana.
+2. Copia el nuevo contenido de `scraper/.ptg-session.json` al secret `PTG_SESSION_JSON`
+   (repo → Settings → Secrets and variables → Actions).
+3. Actions → "PTG scrape" → Run (o espera al reintento horario): la cadena se reanuda sola.
+
+> Asegúrate de tener activado el email de fallos: GitHub → Settings → Notifications →
+> Actions → notificar workflows fallidos. (Default razonable.)
+
 ---
 
 ## Opción 1 — GitHub Actions, bucle continuo (GRATIS, recomendada)
