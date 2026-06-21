@@ -11,4 +11,7 @@ export const config = {
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
   },
   pollIntervalMs: Number(process.env.POLL_INTERVAL_SECONDS ?? 120) * 1000,
+  // Duración máxima del bucle antes de salir limpio (para encadenar turnos en CI).
+  // 0 = sin límite (bucle infinito, p.ej. en una VM always-on).
+  maxRuntimeMs: Number(process.env.MAX_RUNTIME_SECONDS ?? 0) * 1000,
 };

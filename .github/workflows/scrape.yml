@@ -1,17 +1,33 @@
-# Scraper PTG por cron en GitHub Actions (GRATIS, sin servidor propio).
-# Requiere subir el repo a GitHub y configurar Secrets:
-#   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, PTG_SESSION_JSON
+# Scraper PTG 24/7 CONTINUO en GitHub Actions (repo público → minutos gratis ilimitados).
+# Cada turno sondea cada 2 min durante ~50 min y se relanza a sí mismo (cadena always-on).
+# El cron horario es solo red de seguridad por si la cadena muriese.
+# Secrets necesarios: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, PTG_SESSION_JSON
 # (PTG_SESSION_JSON = contenido de scraper/.ptg-session.json)
 name: PTG scrape
 
 on:
-  schedule:
-    - cron: "*/15 * * * *" # cada 15 min (mínimo de GitHub)
   workflow_dispatch: {}
+  schedule:
+    - cron: "0 * * * *" # red de seguridad: resucita la cadena si se cortó
+  push:
+    branches: [main]
+    paths:
+      - "scraper/**"
+      - ".github/workflows/scrape.yml"
+
+permissions:
+  actions: write # para auto-relanzarse (gh workflow run)
+  contents: read
+
+# Un único turno vivo a la vez; un disparo nuevo sustituye al anterior (sin acumular).
+concurrency:
+  group: ptg-scrape
+  cancel-in-progress: true
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     defaults:
       run:
         working-directory: scraper
@@ -22,10 +38,18 @@ jobs:
           node-version: "22"
       - run: npm install
       - run: npx playwright install --with-deps chromium
-      - run: node --experimental-strip-types src/index.ts --once
+      - name: Sondeo continuo (cada 2 min, ~50 min por turno)
+        run: node --experimental-strip-types src/index.ts
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SESSION_JSON: ${{ secrets.PTG_SESSION_JSON }}
           PTG_BASE_URL: https://padelteamgourmet.com
           PTG_FEED_PATH: /feed
+          POLL_INTERVAL_SECONDS: "120"
+          MAX_RUNTIME_SECONDS: "3000"
+      - name: Encadenar el siguiente turno
+        if: always()
+        run: gh workflow run scrape.yml --ref main
+        env:
+          GH_TOKEN: ${{ github.token }}
